@@ -34,22 +34,14 @@ More information on how to install Docker on a Debian Linux system:
 https://www.linuxfordevices.com/tutorials/debian/install-docker-on-debian  
 
 
-## Download, Build and Run the Docker Container
+## Download and Run the Docker Container
 
 ### Download the Docker Container 
-Kommandos, um den Container von https://hub.docker.com/... zu laden
-
-Alt:
 
         cd $HOME
-        curl -fsSL https://github.com/SSV-embedded/micro-vpn/archive/refs/heads/main.tar.gz > micro-vpn-main.tgz
-        tar -xzf micro-vpn-main.tgz
-        cd micro-vpn-main
-
-### Build the Container Image
-Kommando nicht nötig, da Image von https://hub.docker.com/... bereits lauffähig...
-
-      docker build -t vpn-micro:latest -f dockerfile .
+        curl -fsSL https://hub.docker.com/r/ssvembeddedde/ssv-openvpn-demo/main.tar.gz > ssv-openvpn-demo-main.tgz
+        tar -xzf ssv-openvpn-demo-main.tgz
+        cd ssv-openvpn-demo-main
 
 ### Run the Docker Container on a Public Server
 
@@ -70,7 +62,7 @@ If the server's public port is "NATed" and changed and/or not the default port 1
         -e VPN_INTERNET_IP="192.168.33.1" \
         --name=vpn-server vpn-micro &
 
-More available options are listed at the end of this document. 
+[More available options are listed at the end of this document.](#options-for-the-docker-container)
 
 ## Create and Download the VPN Client Configuration
 ### Create the VPN Configuration
@@ -108,7 +100,7 @@ Now do the same for **client-2.ovpn**.
 ![openvpn_connect_steps](https://user-images.githubusercontent.com/85748650/126323217-46cc220d-f71b-4080-9483-a7d178fedd83.png)
 
 ### Import the VPN configuration into the SSV Gateway
-For information on importing the VPN configuration into your SSV gateway, see its first steps manual.
+For information on importing the VPN configuration into your SSV gateway and connecting with the OpenVPN server, see its first steps manual.
 
 ### Check the VPN connection
 Display the status of all connected VPN clients on the server.
