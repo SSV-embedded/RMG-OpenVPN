@@ -1,2 +1,156 @@
 # RMG-OpenVPN
-Small demo OpenVPN server in Docker container for development and testing
+Small OpenVPN server in a Docker container for development and testing.
+
+**IMPORTANT!**
+
+**The proposed setup shall be used for evaluation purposes only and is NOT RECOMMENDED FOR PRODUCTION!
+All required secrets are generated on the OpenVPN server Docker container and copied to all VPN clients. This implies that a security breach on the VPN server compromises all deployed secrets.**
+
+To keep things easy, we tuned down the security a bit and **did not set up any kind of firewall**. That means that each VPN client has full access to all other VPN clients. In the "real world", access between gateways should be more restricted.
+
+## Linux Server
+To install and run the Docker container, an appropriate server is required. You can set up your own server or rent a server from many Internet service providers.
+
+**The server must match the following specifications:**
+
+* Operating system **Linux Debian 10**
+* Access via SSH
+* At least 3 GB of storage (for Linux, Docker runtime etc.)
+
+## Install Docker Runtime on Linux Server
+Establish an SSH connection with a **terminal program like PuTTY** (https://www.puttygen.com) between your PC and the Linux server.
+
+Enter the following commands to install the Docker runtime:
+
+      sudo apt update
+      sudo apt install apt-transport-https ca-certificates curl gnupg2 software-properties-common
+      curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
+      sudo apt-key fingerprint 0EBFCD88
+      sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
+      sudo apt update
+      sudo apt install docker-ce
+
+More information on how to install Docker on a Debian Linux system:
+https://www.linuxfordevices.com/tutorials/debian/install-docker-on-debian  
+
+
+## Download, Build and Run the Docker Container
+
+### Download the Docker Container 
+Kommandos, um den Container von https://hub.docker.com/... zu laden
+
+Alt:
+
+        cd $HOME
+        curl -fsSL https://github.com/SSV-embedded/micro-vpn/archive/refs/heads/main.tar.gz > micro-vpn-main.tgz
+        tar -xzf micro-vpn-main.tgz
+        cd micro-vpn-main
+
+### Build the Container Image
+Kommando nicht nötig, da Image von https://hub.docker.com/... bereits lauffähig...
+
+      docker build -t vpn-micro:latest -f dockerfile .
+
+### Run the Docker Container on a Public Server
+
+      sudo docker run -d --rm --cap-add=NET_ADMIN \
+        -v openvpn-etc-vol:/etc/openvpn \
+        -p 1194:1194 \
+        --name=vpn-server vpn-micro &
+
+### Run the Docker Container on a Local Server
+If the server and the gateway run in a local network, or the server's public IP address is not automatically detected, then use the option `VPN_INTERNET_IP` to define the server's public IP address.
+
+If the server's public port is "NATed" and changed and/or not the default port 1194, then use the option `VPN_INTERNET_PORT` to manually define the server's public port. For example:
+
+    sudo docker run -d --rm --cap-add=NET_ADMIN \
+        -v openvpn-etc-vol:/etc/openvpn \
+        -p 1701:1194 \
+        -e VPN_INTERNET_PORT="1701" \
+        -e VPN_INTERNET_IP="192.168.33.1" \
+        --name=vpn-server vpn-micro &
+
+More available options are listed at the end of this document. 
+
+## Create and Download the VPN Client Configuration
+### Create the VPN Configuration
+Each VPN client needs a VPN configuration file to be able to access the VPN. In our example we create two configuration files: one for your development PC and one for the gateway.
+
+      sudo docker cp vpn-server:/etc/openvpn/client/client-1.ovpn .
+      sudo docker cp vpn-server:/etc/openvpn/client/client-2.ovpn .
+
+### Download and Save the VPN Configuration
+Display the configuration file in the terminal program.
+
+      cat client-1.ovpn
+
+Copy and paste the content of the terminal program into a text editor. With PuTTY you can use the command *Copy all to clipboard* from the context menu.
+
+In the text editor remove all lines before this part:
+
+      ### Start OF VPN CONFIG FILE ###
+
+and after this part:
+
+      ### END OF VPN CONFIG FILE ###
+
+Then save this text file under the name **client-1.ovpn**.
+
+Now do the same for **client-2.ovpn**.
+
+### Import the VPN configuration into the Development PC
+1. Install the OpenVPN client from https://openvpn.net/vpn-client/
+2. Run the OpenVPN client and click on the icon in the system tray.
+3. Click in the menu on **Import Profile**.
+4. Choose the option **File** and select the file **client-1.ovpn**.
+5. Click on the button **Connect**.
+
+![openvpn_connect_steps](https://user-images.githubusercontent.com/85748650/126323217-46cc220d-f71b-4080-9483-a7d178fedd83.png)
+
+### Import the VPN configuration into the SSV Gateway
+For information on importing the VPN configuration into your SSV gateway, see its first steps manual.
+
+### Check the VPN connection
+Display the status of all connected VPN clients on the server.
+
+      sudo docker exec -ti vpn-server vpn-cmd status
+
+### Create more VPN Clients
+Execute the VPN commands **new** and **get** to create more VPN client configurations.
+
+      sudo docker exec -ti vpn-server vpn-cmd new
+      sudo docker exec -ti vpn-server vpn-cmd get
+      cat latest.ovpn
+
+Create VPN client configurations with a specific name:
+
+      sudo docker exec -ti vpn-server vpn-cmd new client-gateway
+      sudo docker exec -ti vpn-server vpn-cmd get client-computer
+      cat client-gateway.ovpn
+
+## Stop and Remove the OpenVPN Docker Container
+Stop the running container.
+
+      sudo docker container stop vpn-server
+
+Remove the container from the server.
+
+      sudo docker image rm vpn-micro
+      sudo docker image prune -f
+      sudo docker volume prune -f
+
+## Options for the Docker Container
+These default options can only be overwritten when the Docker container is started for the first time.
+
+      VPN_KEY_COUNTRY="DE"
+      VPN_KEY_PROVINCE=""
+      VPN_KEY_CITY="Hannover"
+      VPN_KEY_ORG="SSV Software Systems GmbH"
+      VPN_KEY_EMAIL="vpn-micro📧ssv-embedded.de"
+      VPN_KEY_OU="Docker"
+      VPN_KEY_NAME="VPN-micro"
+
+These two options can be used to create new certificates and VPN client configurations. Leave the `VPN_INTERNET_IP` option blank to automatically use the current public IP address of the server.
+
+      VPN_INTERNET_PORT="1194"
+      VPN_INTERNET_IP=""
