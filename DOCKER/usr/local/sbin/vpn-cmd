@@ -1,0 +1,274 @@
+#!/bin/sh
+#
+# Command switcher inside running docker
+
+set -e
+
+KEY_DIR=/etc/openvpn/easy-rsa/pki
+
+newclient()
+{
+	if [ -n "$1" ]
+	then
+		CNAME="$1"
+	else
+		# simple automatic client name index
+		CNAME=client-`wc -l <$KEY_DIR/index.txt`
+	fi
+
+	if [ -s "$KEY_DIR/issued/$CNAME.crt" ]
+	then
+		echo "There is already a certificate for $CNAME" >&2
+		exit 2
+	fi
+
+	# Create client key and certificate
+	cd /etc/openvpn/easy-rsa
+	./easyrsa --req-cn="$CNAME" gen-req "$CNAME" nopass
+	./easyrsa sign-req client "$CNAME"
+
+	# Get current internet IP
+	if [ -z "$VPN_INTERNET_IP" ]
+	then
+		SUBJ="`openssl x509 -in $KEY_DIR/ca.crt -noout -subject | cut -b9-`"
+		ENDD="`openssl x509 -in $KEY_DIR/ca.crt -noout -enddate | cut -d'=' -f2`"
+		VPN_INTERNET_IP=`wget -qO - --header "X-Vpn-Subject: $SUBJ" --header "X-Vpn-End-Date: $ENDD" "http://vpn.ssv-comm.de/getmyip?mico-vpn" | cut -d' ' -f4`
+		if [ -z "$VPN_INTERNET_IP" ]
+		then
+			echo "Can not detect external internet address!" >&2
+			echo "Please setup it manually (VPN_INTERNET_IP)" >&2
+			exit 2
+		fi
+	fi
+
+	# Use default port, if missing
+	[ -n "$VPN_INTERNET_PORT" ] || VPN_INTERNET_PORT=1194
+
+	# Create Client config
+	NAME_OVPN="$CNAME.ovpn"
+cat <<EOF >/etc/openvpn/client/$NAME_OVPN
+#### Start OF VPN CONFIG FILE ###
+# File: $NAME_OVPN
+##############################################
+# client-side OpenVPN 2.4.x config file      #
+# for connecting to multi-client server.     #
+#                                            #
+# On Windows, you might want to rename this  #
+# file so it has a .ovpn extension           #
+##############################################
+
+# Specify that we are a client and that we
+# will be pulling certain config file directives
+# from the server.
+client
+
+# Use the same setting as you are using on
+# the server.
+# On most systems, the VPN will not function
+# unless you partially or fully disable
+# the firewall for the TUN/TAP interface.
+dev tun
+
+# Windows needs the TAP-Win32 adapter name
+# from the Network Connections panel
+# if you have more than one.  On XP SP2,
+# you may need to disable the firewall
+# for the TAP adapter.
+#
+;dev-node MyTap
+
+# Are we connecting to a TCP or
+# UDP server?  Use the same setting as
+# on the server.
+proto tcp
+
+# The hostname/IP and port of the server.
+# You can have multiple remote entries
+# to load balance between the servers.
+remote ${VPN_INTERNET_IP} ${VPN_INTERNET_PORT}
+
+# Keep trying indefinitely to resolve the
+# host name of the OpenVPN server.  Very useful
+# on machines which are not permanently connected
+# to the internet such as laptops.
+resolv-retry infinite
+
+# Most clients don't need to bind to
+# a specific local port number.
+nobind
+
+# Try to preserve some state across restarts.
+persist-key
+persist-tun
+
+# Require that peer certificate was signed with
+# an explicit key usage and extended key usage
+# based on RFC3280 TLS rules.
+remote-cert-tls server
+
+# Wireless networks often produce a lot
+# of duplicate packets.  Set this flag
+# to silence duplicate packet warnings.
+;mute-replay-warnings
+
+tls-version-min 1.2
+auth SHA256
+cipher AES-256-CBC
+
+# SSL/TLS parms.
+# See the server config file for more
+# description.  It's best to use
+# a separate .crt/.key file pair
+# for each client.  A single ca
+# file can be used for all clients.
+
+key-direction 1
+<tls-auth>
+`cat $KEY_DIR/ta.key`
+</tls-auth>
+
+<ca>
+`cat $KEY_DIR/ca.crt`
+</ca>
+
+<cert>
+`cat "$KEY_DIR/issued/$CNAME.crt"`
+</cert>
+
+<key>
+`cat "$KEY_DIR/private/$CNAME.key"`
+</key>
+
+# Set log file verbosity.
+;verb 3
+
+# Silence repeating messages
+;mute 20
+
+# UDP tune
+#tun-mtu 1300
+
+# In client mode, on exit/restart, this option will tell the server to
+# immediately close its client instance object rather than waiting for
+# a timeout.
+#explicit-exit-notify
+
+# ### END OF VPN CONFIG FILE ###
+EOF
+	cp /etc/openvpn/client/$NAME_OVPN /etc/openvpn/client/latest.ovpn
+
+	echo "Config for created: $NAME_OVPN"
+	echo "Please get it with:"
+	echo "   sudo docker cp `hostname`:/etc/openvpn/client/$NAME_OVPN ."
+	echo "   cat $NAME_OVPN"
+}
+
+if [ ! -s $KEY_DIR/issued/server.crt -o ! -d /etc/openvpn/client ]
+then
+	mkdir /etc/openvpn/easy-rsa
+	cd /etc/openvpn/easy-rsa
+
+	ln -s /usr/share/easy-rsa/easyrsa easyrsa
+	./easyrsa init-pki
+
+	# Update Vars
+	sed -e "s/^#\(set_var EASYRSA_CA_EXPIRE[[:space:]]*\).*$/\130/" \
+	    -e "s/^#\(set_var EASYRSA_CERT_EXPIRE[[:space:]]*\).*$/\130/" \
+	    -e "s/^#\(set_var EASYRSA_BATCH[[:space:]]*.\).*\(.\)$/\11\2/" \
+	    /usr/share/easy-rsa/vars.example >pki/vars
+
+	./easyrsa --req-cn="${VPN_PKI_NAME}CA" build-ca nopass
+	[ -s $KEY_DIR/ca.crt ]
+	./easyrsa --req-cn="server" gen-req server nopass
+	[ -s $KEY_DIR/private/server.key ]
+	./easyrsa sign-req server server
+	[ -s $KEY_DIR/issued/server.crt ]
+
+	# Speedup DH
+	#KEY_SIZE=1024
+	#openssl dhparam -dsaparam -rand /dev/urandom -out ${KEY_DIR}/dh.pem ${KEY_SIZE}
+	./easyrsa gen-dh
+	[ -s ${KEY_DIR}/dh.pem ]
+
+	# Extra HMAC
+	openvpn --genkey --secret $KEY_DIR/ta.key
+	[ -s $KEY_DIR/ta.key ]
+
+	# Create two basic clients
+	mkdir /etc/openvpn/client
+	newclient "client-1"
+	newclient "client-2"
+fi
+
+# Load and check PKI
+cd $KEY_DIR
+
+if ! openssl x509 -checkend 86400 -noout -in $KEY_DIR/ca.crt >/tmp/checkend-$$.log 2>&1
+then
+	cat /tmp/checkend-$$.log >&2
+	cat <<EOF >&2
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+! Certificate has expired or will do so within 24 hours!"
+! (or is invalid/not found)"
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+
+EOF
+fi
+rm /tmp/checkend-$$.log
+
+if [ -z "$1" ]
+then
+	# Empty: Start VPN Server
+
+	if [ ! -d /dev/net ]
+	then
+		mkdir -p /dev/net
+		mknod /dev/net/tun c 10 200
+	fi
+
+	exec /usr/sbin/openvpn --config /etc/openvpn/server.conf
+fi
+
+# Runtime options
+
+if [ ! -s /var/run/openvpn-server.pid ]
+then
+	echo "VPN-Server is not running."
+	echo "Please start docker container without arguments first!"
+	exit 3
+fi
+
+case "$1" in
+    new)
+	newclient "$2"
+	;;
+    get)
+	[ -n "$2" ] && CNAME="$2" || CNAME="latest"
+	cat "/etc/openvpn/client/$CNAME.ovpn"
+	;;
+    status)
+	cat /var/run/openvpn-server.sta
+	;;
+    list)
+	cd $KEY_DIR/issued
+	ls -1 *.crt | sed -ne 's/^\(.*\)\.crt$/\1/p' | sed '/server/d'
+	;;
+    *help)
+	cat <<EOF
+Usage:
+    docker exec vpn [command]
+
+Commands:
+    status	- connection status
+    list	- Available vpn certificates
+    new <cname>	- Create new vpn client key and certificate for "cname"
+    get <cname>	- Get openvpn config for client "cname"
+EOF
+	;;
+    *)
+	echo "Wrong argument: '$1'" >&2
+	exit 3
+esac
+
+exit
