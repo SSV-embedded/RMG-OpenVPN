@@ -6,6 +6,8 @@ Small OpenVPN server in a Docker container for development and testing.
 **The proposed setup shall be used for evaluation purposes only and is NOT RECOMMENDED FOR PRODUCTION!
 All required secrets are generated on the OpenVPN server Docker container and copied to all VPN clients. This implies that a security breach on the VPN server compromises all deployed secrets.**
 
+![rmg941c_vpn_eval](https://user-images.githubusercontent.com/85748650/126526925-cfd9af5a-d0b6-442c-8341-b9074ef30216.png)
+
 To keep things easy, we tuned down the security a bit and **did not set up any kind of firewall**. That means that each VPN client has full access to all other VPN clients. In the "real world", access between gateways should be more restricted.
 
 ## Linux Server
