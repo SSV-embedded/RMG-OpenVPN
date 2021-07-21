@@ -36,33 +36,37 @@ https://www.linuxfordevices.com/tutorials/debian/install-docker-on-debian
 
 ## Download and Run the Docker Container
 
-### Download the Docker Container 
-
-        cd $HOME
-        curl -fsSL https://hub.docker.com/r/ssvembeddedde/ssv-openvpn-demo/main.tar.gz > ssv-openvpn-demo-main.tgz
-        tar -xzf ssv-openvpn-demo-main.tgz
-        cd ssv-openvpn-demo-main
-
 ### Run the Docker Container on a Public Server
 
       sudo docker run -d --rm --cap-add=NET_ADMIN \
-        -v openvpn-etc-vol:/etc/openvpn \
         -p 1194:1194 \
-        --name=vpn-server vpn-micro &
+        -v openvpn-etc-vol:/etc/openvpn \
+        --name=vpn-server ssvembeddedde/ssv-openvpn-demo:latest &
 
 ### Run the Docker Container on a Local Server
-If the server and the gateway run in a local network, or the server's public IP address is not automatically detected, then use the option `VPN_INTERNET_IP` to define the server's public IP address.
+If the server and the gateway run in a local network, or the server's public IP address is not automatically detected, then use the environment option `VPN_INTERNET_IP` to define the server's public IP address.
 
-If the server's public port is "NATed" and changed and/or not the default port 1194, then use the option `VPN_INTERNET_PORT` to manually define the server's public port. For example:
+If the server's public port is "NATed" and changed and/or not the default port 1194, then use the environment option `VPN_INTERNET_PORT` to manually define the server's public port. For example:
 
-    sudo docker run -d --rm --cap-add=NET_ADMIN \
-        -v openvpn-etc-vol:/etc/openvpn \
-        -p 1701:1194 \
-        -e VPN_INTERNET_PORT="1701" \
-        -e VPN_INTERNET_IP="192.168.33.1" \
-        --name=vpn-server vpn-micro &
+      sudo docker run -d --rm --cap-add=NET_ADMIN \
+          -p 1701:1194 \
+          -v openvpn-etc-vol:/etc/openvpn \
+          -e VPN_INTERNET_PORT="1701" \
+          -e VPN_INTERNET_IP="192.168.33.1" \
+          --name=vpn-server ssvembeddedde/ssv-openvpn-demo:latest &
+
+In this example the external port 1701 is used and redirected to the internal Docker port 1194. The local IP address where the Docker host runs is 192.168.33.1 in the local network.
 
 [More available options are listed at the end of this document.](#options-for-the-docker-container)
+
+Check the running Docker container.
+
+      sudo docker ps
+
+This command should print an output like this:
+
+      CONTAINER ID  IMAGE                                  COMMAND    CREATED             STATUS             PORTS                                      NAMES
+      07d0ed720ad6  ssvembeddedde/ssv-openvpn-demo:latest  "vpn-cmd"  About a minute ago  Up About a minute  0.0.0.0:1194->1194/tcp, :::1194->1194/tcp  vpn-server
 
 ## Create and Download the VPN Client Configuration
 ### Create the VPN Configuration
@@ -70,6 +74,16 @@ Each VPN client needs a VPN configuration file to be able to access the VPN. In 
 
       sudo docker cp vpn-server:/etc/openvpn/client/client-1.ovpn .
       sudo docker cp vpn-server:/etc/openvpn/client/client-2.ovpn .
+
+If you get an error like:
+
+      Error: No such container:path: vpn-server:/etc/openvpn/client/client-1.ovpn
+
+Then please wait some more minutes, because creating the PKI (Public Key Infrastructure) takes some time. You can inspect the running Docker container with:
+
+      docker logs vpn-server
+
+You need to wait until `client-1.ovpn` is ready. You can stop logging with the key combination *CTRL-C*.
 
 ### Download and Save the VPN Configuration
 Display the configuration file in the terminal program.
@@ -100,12 +114,24 @@ Now do the same for **client-2.ovpn**.
 ![openvpn_connect_steps](https://user-images.githubusercontent.com/85748650/126323217-46cc220d-f71b-4080-9483-a7d178fedd83.png)
 
 ### Import the VPN configuration into the SSV Gateway
-For information on importing the VPN configuration into your SSV gateway and connecting with the OpenVPN server, see its first steps manual.
+**For information on importing the VPN configuration into your SSV gateway and connecting with the OpenVPN server, please refer to its first steps manual.**
 
 ### Check the VPN connection
 Display the status of all connected VPN clients on the server.
 
       sudo docker exec -ti vpn-server vpn-cmd status
+
+Display the system log information of the OpenVPN process.
+
+      sudo docker logs -f vpn-server
+
+Typically the final line after the start is *Initialization Sequence Completed*. You can stop logging with the key combination *CTRL-C*.
+
+Open the VPN IP address of your SSV gateway in a browser. Typically the VPN client-1 has the VPN IP **10.126.0.6**, and the VPN client-2 has the VPN IP **10.126.0.10**. So if your SSV gateway is the VPN client-2 please open this URL:
+
+      http://10.126.0.10:7777/
+
+If the VPN connection works, you should see the gateway's login screen.
 
 ### Create more VPN Clients
 Execute the VPN commands **new** and **get** to create more VPN client configurations.
@@ -127,22 +153,37 @@ Stop the running container.
 
 Remove the container from the server.
 
-      sudo docker image rm vpn-micro
+      sudo docker image rm ssv-openvpn-demo
       sudo docker image prune -f
       sudo docker volume prune -f
 
-## Options for the Docker Container
-These default options can only be overwritten when the Docker container is started for the first time.
+## Development
 
-      VPN_KEY_COUNTRY="DE"
-      VPN_KEY_PROVINCE=""
-      VPN_KEY_CITY="Hannover"
-      VPN_KEY_ORG="SSV Software Systems GmbH"
-      VPN_KEY_EMAIL="vpn-micro📧ssv-embedded.de"
-      VPN_KEY_OU="Docker"
-      VPN_KEY_NAME="VPN-micro"
+### Options for the Docker Container
+This default option can only be overwritten when the Docker container is started for the first time.
 
-These two options can be used to create new certificates and VPN client configurations. Leave the `VPN_INTERNET_IP` option blank to automatically use the current public IP address of the server.
+      VPN_KEY_NAME="ssv-openvpn-demo"
+
+These two options can be used to create new certificates and VPN client configurations. Leave the `VPN_INTERNET_IP` option blank to automatically detect and use the current public IP address of the server.
 
       VPN_INTERNET_PORT="1194"
       VPN_INTERNET_IP=""
+
+### Build and Run the Docker Container from GitHub
+Download the container source file from Github.
+
+      cd $HOME
+      curl -fsSL https://github.com/SSV-embedded/ssv-openvpn-demo/archive/refs/heads/main.tar.gz > ssv-openvpn-demo-main.tgz
+      tar -xzf ssv-openvpn-demo-main.tgz
+      cd ssv-openvpn-demo-main
+
+Build the container image.
+
+      docker build -t ssv-openvpn-demo:latest .
+
+Run the container with defaults.
+
+      sudo docker run -d --rm --cap-add=NET_ADMIN \
+        -p 1194:1194 \
+        -v openvpn-etc-vol:/etc/openvpn \
+        --name=vpn-server ssv-openvpn-demo &
