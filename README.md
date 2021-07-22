@@ -71,6 +71,7 @@ This command should print an output like this:
       07d0ed720ad6  ssvembeddedde/ssv-openvpn-demo:latest  "vpn-cmd"  About a minute ago  Up About a minute  0.0.0.0:1194->1194/tcp, :::1194->1194/tcp  vpn-server
 
 Display the **system log** of the running Docker container.
+      
       sudo docker logs -f vpn-server
 
 Wait for the message **Initialization Sequence Completed** and stop the logging with the key combination **CTRL-C**.
