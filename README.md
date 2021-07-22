@@ -126,7 +126,7 @@ Now do the same for **client-2.ovpn**.
 ### Check the VPN connection
 Display the status of all connected VPN clients on the server.
 
-      sudo docker exec -ti vpn-server vpn-cmd status
+      sudo docker exec vpn-server vpn-cmd status
 
 Display the system log information of the OpenVPN process.
 
@@ -143,14 +143,14 @@ If the VPN connection works, you should see the gateway's login screen.
 ### Create more VPN Clients
 Execute the VPN commands **new** and **get** to create more VPN client configurations.
 
-      sudo docker exec -ti vpn-server vpn-cmd new
-      sudo docker exec -ti vpn-server vpn-cmd get
+      sudo docker exec vpn-server vpn-cmd new
+      sudo docker exec vpn-server vpn-cmd get
       cat latest.ovpn
 
 Create VPN client configurations with a specific name:
 
-      sudo docker exec -ti vpn-server vpn-cmd new client-gateway
-      sudo docker exec -ti vpn-server vpn-cmd get client-computer
+      sudo docker exec vpn-server vpn-cmd new client-gateway
+      sudo docker exec vpn-server vpn-cmd get client-computer
       cat client-gateway.ovpn
 
 ## Stop and Remove the OpenVPN Docker Container
