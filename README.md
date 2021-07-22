@@ -61,7 +61,8 @@ In this example the external port 1701 is used and redirected to the internal Do
 
 [More available options are listed at the end of this document.](#options-for-the-docker-container)
 
-Check the running Docker container.
+## Check running Docker container
+* Check the running Docker container.
 
       sudo docker ps
 
@@ -70,25 +71,29 @@ This command should print an output like this:
       CONTAINER ID  IMAGE                                  COMMAND    CREATED             STATUS             PORTS                                      NAMES
       07d0ed720ad6  ssvembeddedde/ssv-openvpn-eval:latest  "vpn-cmd"  About a minute ago  Up About a minute  0.0.0.0:1194->1194/tcp, :::1194->1194/tcp  vpn-server
 
-## Create and Download the VPN Client Configuration
-### Create the VPN Configuration
+* Watch syslog from running Docker:
+
+      sudo docker logs -f vpn-server
+
+* Wait for message "Initialization Sequence Completed".
+* Than stop logging with the key combination *CTRL-C*.
+
+## Get the VPN Client Configuration
+### Download and Save the VPN Configuration
 Each VPN client needs a VPN configuration file to be able to access the VPN. In our example we create two configuration files: one for your development PC and one for the gateway.
+
+* Get configuration files from running Docker
 
       sudo docker cp vpn-server:/etc/openvpn/client/client-1.ovpn .
       sudo docker cp vpn-server:/etc/openvpn/client/client-2.ovpn .
 
-If you get an error like:
+      * If you get an error like:
 
-      Error: No such container:path: vpn-server:/etc/openvpn/client/client-1.ovpn
+            Error: No such container:path: vpn-server:/etc/openvpn/client/client-1.ovpn
 
-Then please wait some more minutes, because creating the PKI (Public Key Infrastructure) takes some time. You can inspect the running Docker container with:
+      Then please wait some more minutes, because creating the PKI (Public Key Infrastructure) takes some time.
 
-      docker logs vpn-server
-
-You need to wait until `client-1.ovpn` is ready. You can stop logging with the key combination *CTRL-C*.
-
-### Download and Save the VPN Configuration
-Display the configuration file in the terminal program.
+* Display the configuration file in the terminal program.
 
       cat client-1.ovpn
 
