@@ -43,7 +43,7 @@ https://www.linuxfordevices.com/tutorials/debian/install-docker-on-debian
       sudo docker run -d --rm --cap-add=NET_ADMIN \
         -p 1194:1194 \
         -v openvpn-etc-vol:/etc/openvpn \
-        --name=vpn-server ssvembeddedde/ssv-openvpn-demo:latest &
+        --name=vpn-server ssvembeddedde/ssv-openvpn-eval:latest &
 
 ### Run the Docker Container on a Local Server
 If the server and the gateway run in a local network, or the server's public IP address is not automatically detected, then use the environment option `VPN_INTERNET_IP` to define the server's public IP address.
@@ -55,7 +55,7 @@ If the server's public port is "NATed" and changed and/or not the default port 1
           -v openvpn-etc-vol:/etc/openvpn \
           -e VPN_INTERNET_PORT="1701" \
           -e VPN_INTERNET_IP="192.168.33.1" \
-          --name=vpn-server ssvembeddedde/ssv-openvpn-demo:latest &
+          --name=vpn-server ssvembeddedde/ssv-openvpn-eval:latest &
 
 In this example the external port 1701 is used and redirected to the internal Docker port 1194. The local IP address where the Docker host runs is 192.168.33.1 in the local network.
 
@@ -68,7 +68,7 @@ In this example the external port 1701 is used and redirected to the internal Do
 This command should print an output like this:
 
       CONTAINER ID  IMAGE                                  COMMAND    CREATED             STATUS             PORTS                                      NAMES
-      07d0ed720ad6  ssvembeddedde/ssv-openvpn-demo:latest  "vpn-cmd"  About a minute ago  Up About a minute  0.0.0.0:1194->1194/tcp, :::1194->1194/tcp  vpn-server
+      07d0ed720ad6  ssvembeddedde/ssv-openvpn-eval:latest  "vpn-cmd"  About a minute ago  Up About a minute  0.0.0.0:1194->1194/tcp, :::1194->1194/tcp  vpn-server
 
 Display the **system log** of the running Docker container.
       
@@ -151,7 +151,7 @@ Stop the running container.
 
 Remove the container from the server.
 
-      sudo docker image rm ssv-openvpn-demo
+      sudo docker image rm ssv-openvpn-eval
       sudo docker image prune -f
       sudo docker volume prune -f
 
@@ -160,7 +160,7 @@ Remove the container from the server.
 ### Options for the Docker Container
 This default option can only be overwritten when the Docker container is started for the first time.
 
-      VPN_KEY_NAME="ssv-openvpn-demo"
+      VPN_KEY_NAME="ssv-openvpn-eval"
 
 These two options can be used to create new certificates and VPN client configurations. Leave the `VPN_INTERNET_IP` option blank to automatically detect and use the current public IP address of the server.
 
@@ -171,17 +171,17 @@ These two options can be used to create new certificates and VPN client configur
 Download the container source file from Github.
 
       cd $HOME
-      curl -fsSL https://github.com/SSV-embedded/ssv-openvpn-demo/archive/refs/heads/main.tar.gz > ssv-openvpn-demo-main.tgz
-      tar -xzf ssv-openvpn-demo-main.tgz
-      cd ssv-openvpn-demo-main
+      curl -fsSL https://github.com/SSV-embedded/RMG-OpenVPN/archive/refs/heads/main.tar.gz > ssv-openvpn-eval-main.tgz
+      tar -xzf ssv-openvpn-eval-main.tgz
+      cd ssv-openvpn-eval-main
 
 Build the container image.
 
-      docker build -t ssv-openvpn-demo:latest .
+      docker build -t ssv-openvpn-eval:latest .
 
 Run the container with defaults.
 
       sudo docker run -d --rm --cap-add=NET_ADMIN \
         -p 1194:1194 \
         -v openvpn-etc-vol:/etc/openvpn \
-        --name=vpn-server ssv-openvpn-demo &
+        --name=vpn-server ssv-openvpn-eval &
