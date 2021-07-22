@@ -87,7 +87,7 @@ Each VPN client needs a VPN configuration file to be able to access the VPN. In 
       sudo docker cp vpn-server:/etc/openvpn/client/client-1.ovpn .
       sudo docker cp vpn-server:/etc/openvpn/client/client-2.ovpn .
 
-      * If you get an error like:
+    * If you get an error like:
 
             Error: No such container:path: vpn-server:/etc/openvpn/client/client-1.ovpn
 
