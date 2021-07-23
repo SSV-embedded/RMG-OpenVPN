@@ -123,7 +123,7 @@ Now do the same for **client-2.ovpn**.
 ### Check the VPN Connection
 Display the status of all connected VPN clients on the server.
 
-      sudo docker exec -ti vpn-server vpn-cmd status
+      sudo docker exec vpn-server vpn-cmd status
 
 Open the VPN IP address of your SSV gateway in a browser. Typically the VPN client-1 has the VPN IP **10.126.0.6**, and the VPN client-2 has the VPN IP **10.126.0.10**. So if your SSV gateway is the VPN client-2 please open this URL:
 
@@ -134,14 +134,14 @@ If the VPN connection works, you should see the gateway's login screen.
 ### Create more VPN Clients
 Execute the VPN commands **new** and **get** to create more VPN client configurations.
 
-      sudo docker exec -ti vpn-server vpn-cmd new
-      sudo docker exec -ti vpn-server vpn-cmd get
+      sudo docker exec vpn-server vpn-cmd new
+      sudo docker exec vpn-server vpn-cmd get
       cat latest.ovpn
 
 Create VPN client configurations with a specific name:
 
-      sudo docker exec -ti vpn-server vpn-cmd new client-gateway
-      sudo docker exec -ti vpn-server vpn-cmd get client-computer
+      sudo docker exec vpn-server vpn-cmd new client-gateway
+      sudo docker exec vpn-server vpn-cmd get client-computer
       cat client-gateway.ovpn
 
 ## Stop and Remove the OpenVPN Docker Container
