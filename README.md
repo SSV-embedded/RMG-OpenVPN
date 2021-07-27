@@ -151,7 +151,7 @@ Stop the running container.
 
 Remove the container from the server.
 
-      sudo docker image rm ssv-openvpn-eval
+      sudo docker image rm ssvembeddedde/ssv-openvpn-eval
       sudo docker image prune -f
       sudo docker volume prune -f
 
@@ -177,7 +177,7 @@ Download the container source file from Github.
 
 Build the container image.
 
-      docker build -t ssv-openvpn-eval:latest .
+      sudo docker build -t ssv-openvpn-eval:latest .
 
 Run the container with defaults.
 
