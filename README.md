@@ -136,13 +136,11 @@ Execute the VPN commands **new** and **get** to create more VPN client configura
 
       sudo docker exec vpn-server vpn-cmd new
       sudo docker exec vpn-server vpn-cmd get
-      cat latest.ovpn
 
 Create VPN client configurations with a specific name:
 
       sudo docker exec vpn-server vpn-cmd new client-gateway
       sudo docker exec vpn-server vpn-cmd get client-gateway
-      cat client-gateway.ovpn
 
 ## Stop and Remove the OpenVPN Docker Container
 Stop the running container.
