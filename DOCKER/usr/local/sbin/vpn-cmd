@@ -157,7 +157,7 @@ key-direction 1
 EOF
 	cp /etc/openvpn/client/$NAME_OVPN /etc/openvpn/client/latest.ovpn
 
-	echo "Config for created: $NAME_OVPN"
+	echo "Config created for: $NAME_OVPN"
 	echo "Please get it with:"
 	echo "   sudo docker cp `hostname`:/etc/openvpn/client/$NAME_OVPN ."
 	echo "   cat $NAME_OVPN"
